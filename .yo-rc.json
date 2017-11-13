@@ -1,0 +1,9 @@
+{
+  "generator-react-webpack": {
+    "appName": "globe-model",
+    "style": "sass",
+    "cssmodules": false,
+    "postcss": false,
+    "generatedWithVersion": 4
+  }
+}
