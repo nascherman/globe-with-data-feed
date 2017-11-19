@@ -2,6 +2,16 @@ import React from 'react';
 import ThreeHelper from '../services/three.helper';
 
 const SPHERE_RADIUS = 300;
+const INITIAL_CAM_POSITION = {
+  x: 62,
+  y: 258,
+  z: 284
+};
+const INITIAL_SUN_POSITION = {
+  x: -1000,
+  y: 300,
+  z: 0
+};
 
 class Globe extends React.Component {
   constructor(props) {
@@ -42,34 +52,81 @@ class Globe extends React.Component {
   }
 
   createScene() {
-    const ambient = this.helper.createAmbience(0xFFFFFF, 0.3);
+    const ambient = this.helper.createAmbience(0xFFFFFF, 0.2);
     const light = this.helper.createDirectionalLight(0xFFFFFF, 1);
-
     const { meshPlanet, meshClouds } = this.createPlanet();
     this.scene.add(meshPlanet);
     this.scene.add(meshClouds);
     this.scene.add(ambient);
     this.scene.add(light);
+
+    this.camera.position.set(
+      INITIAL_CAM_POSITION.x,
+      INITIAL_CAM_POSITION.y,
+      INITIAL_CAM_POSITION.z
+    );
+    light.position.set(
+      INITIAL_SUN_POSITION.x,
+      INITIAL_SUN_POSITION.y,
+      INITIAL_SUN_POSITION.z
+    );
+
     this.camera.lookAt(this.scene.position);
-    this.camera.position.x = -100;
 
     const el = document.getElementById('scene');
     el.appendChild(this.renderer.domElement);
 
     // test
-    this.scene.add(this.createMarker(43.761539, -79.411079));
+    const aircraftSprite = this.createGlobeSprite(
+      43.761539,
+      -79.411079,
+      '/static/aircraft-sprite.jpg',
+      '/static/aircraft-sprite-alpha.png',
+      700,
+      700,
+      0.015,
+      10.15
+    );
+    this.scene.add(aircraftSprite);
+
+    // Test destination line tracing
+    const Three = this.helper.getThree();
+    const testData = this.latLongToVector3(51.50, -0.076, SPHERE_RADIUS, 10.15);
+    this.scene.add(this.createDestinationArc(
+      new Three.Vector3(aircraftSprite.position.x, aircraftSprite.position.y, aircraftSprite.position.z),
+      new Three.Vector3(testData.x, testData.y, testData.z),
+      500,
+      0xff0000,
+      false
+    ));
   }
 
   // TODO - render canvas element on a plane
-  createMarker(lat, lon) {
+  createGlobeSprite(lat, lon, map, alpha, width, height, spriteScale, spriteHeight) {
     const Three = this.helper.getThree();
-    const cube = new Three.Mesh(new Three.CubeGeometry(
-      5, 5, 3, 1, 1, 1, new Three.MeshLambertMaterial({color: 0x000000, opacity: 0.6})
-    ));
-    const { x, y, z } = this.latLongToVector3(lat, lon, SPHERE_RADIUS, 1);
-    cube.position.set(x, y, z);
+    const loader = new Three.TextureLoader();
+    // sprite
+    const spriteTexture = loader.load(map);
+    const spriteAlpha = loader.load(alpha);
 
-    return cube;
+    const sprite = new Three.Mesh(
+      new Three.PlaneGeometry(width, height),
+      new Three.MeshStandardMaterial({
+        alphaMap: spriteAlpha,
+        map: spriteTexture,
+        transparent: true,
+        alphaTest: 0.5,
+        side: Three.DoubleSide,
+        flatShading: true
+      })
+    );
+    const { x, y, z } = this.latLongToVector3(lat, lon, SPHERE_RADIUS, spriteHeight);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(spriteScale, spriteScale, spriteScale);
+    // TODO set rotation based on sphere
+    sprite.rotation.set(-0.72, 0, 0);
+
+    return sprite;
   }
 
   createPlanet() {
@@ -85,7 +142,7 @@ class Globe extends React.Component {
       specular: 0xffffff,
       specularMap: alphaMap,
       bumpMap: planetMap,
-      bumpScale: 4,
+      bumpScale: 1.5,
       shininess: 1
     });
 
@@ -117,7 +174,36 @@ class Globe extends React.Component {
     return {x, y, z};
   }
 
+  createDestinationArc(pointStart, pointEnd, smoothness, color, clockWise) {
+    const Three = this.helper.getThree();
+    const cb = new Three.Vector3();
+    const ab = new Three.Vector3();
+    const normal = new Three.Vector3();
+    cb.subVectors(new Three.Vector3(), pointEnd);
+    ab.subVectors(pointStart, pointEnd);
+    cb.cross(ab);
+    normal.copy(cb).normalize();
+
+    let angle = pointStart.angleTo(pointEnd);
+    if (clockWise) {
+      angle -= Math.PI * 2;
+    }
+
+    const angleDelta = angle / (smoothness - 1);
+    const geometry = new Three.Geometry();
+    const material = new Three.LineBasicMaterial({
+      color: 0xff0000
+    });
+
+    for (let i = 0; i < smoothness; i += 1) {
+      geometry.vertices.push(pointStart.clone().applyAxisAngle(normal, angleDelta * i));
+    }
+
+    return new Three.Line(geometry, material);
+  }
+
   renderScene() {
+    // console.log(this.camera.position.x, this.camera.position.y, this.camera.position.z);
     this.renderer.render(this.scene, this.camera);
   }
 

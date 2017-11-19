@@ -20,8 +20,8 @@ export default class ThreeHelper {
     return new THREE.Scene();
   }
 
-  createCamera(zoom, width, height) {
-    return new THREE.PerspectiveCamera(zoom, width / height, 0.1, 10000);
+  createCamera(fov, width, height) {
+    return new THREE.PerspectiveCamera(fov, width / height, 0.1, 10000);
   }
 
   createAmbience(colour, intensity) {
