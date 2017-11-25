@@ -12,10 +12,6 @@ export default class ThreeHelper {
     this.renderer.setClearColor(0x111111);
   }
 
-  getRenderer() {
-    return this.renderer;
-  }
-
   createScene() {
     return new THREE.Scene();
   }
@@ -32,10 +28,11 @@ export default class ThreeHelper {
     return new THREE.DirectionalLight(colour, intensity);
   }
 
-  setOrbitControls(camera) {
-    return new OrbitControls(camera);
+  setOrbitControls(camera, options) {
+    let controls = new OrbitControls(camera);
+    Object.assign(controls, options)
+    return controls;
   }
-
 
   getThree() {
     return THREE;
