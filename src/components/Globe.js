@@ -1,6 +1,7 @@
 import React from 'react';
 import GeoHelper from '../services/geo.helper';
 import SceneHelper from '../services/scene.helper';
+import MathHelper from '../services/math.helper';
 
 const SPHERE_RADIUS = 300;
 const INITIAL_CAM_POSITION = {
@@ -14,7 +15,7 @@ const INITIAL_SUN_POSITION = {
   z: 0
 };
 const CONTROL_OPTIONS = {
-  minDistance: 200,
+  minDistance: 400,
   maxDistance: 1000,
   minPolarAngle: 0.1,
   maxPolarAngle: Math.PI - 0.1,
@@ -22,6 +23,11 @@ const CONTROL_OPTIONS = {
   dampingFactor: 0.3,
   zoomSpeed: 0.1,
   rotateSpeed: 0.1
+};
+
+const AIRCRAFT_POSITIONS = {
+  start: [43.761539, -79.411079],
+  end: [48.21, 16.36]
 };
 
 let testTime = 0;
@@ -32,6 +38,7 @@ class Globe extends React.Component {
 
     this.helper = new SceneHelper(props.width, props.height, CONTROL_OPTIONS);
     this.geoHelper = new GeoHelper();
+    this.mathHelper = new MathHelper();
     this.renderer = this.helper.getRenderer();
     this.scene = this.helper.getScene();
     this.camera = this.helper.getCamera();
@@ -96,8 +103,8 @@ class Globe extends React.Component {
 
     // test
     const aircraftSprite = this.createGlobeSprite(
-      43.761539,
-      -79.411079,
+      AIRCRAFT_POSITIONS.start[0],
+      AIRCRAFT_POSITIONS.start[1],
       '/static/aircraft-sprite.jpg',
       '/static/aircraft-sprite-alpha.png',
       3,
@@ -106,12 +113,18 @@ class Globe extends React.Component {
       10.15,
       meshPlanet
     );
+
     this.scene.add(aircraftSprite);
     this.sprites.push(aircraftSprite);
 
     // Test destination line tracing
     const Three = this.helper.getThree();
-    const testData = this.geoHelper.latLongToVector3(51.50, -0.076, SPHERE_RADIUS, 10.15);
+    const testData = this.geoHelper.latLongToVector3(
+      AIRCRAFT_POSITIONS.end[0],
+      AIRCRAFT_POSITIONS.end[1],
+      SPHERE_RADIUS,
+      10.15
+    );
     const destinationArc = this.createDestinationArc(
       new Three.Vector3(aircraftSprite.position.x, aircraftSprite.position.y, aircraftSprite.position.z),
       new Three.Vector3(testData.x, testData.y, testData.z),
@@ -119,8 +132,7 @@ class Globe extends React.Component {
       0xff0000,
       false
     );
-    destinationArc.markers = this.createMarkersForArc(destinationArc);
-    const targetMarker = destinationArc.markers.children[1];
+    const targetMarker = destinationArc.markers.children[0];
     this.scene.add(destinationArc.markers);
     aircraftSprite.arc = destinationArc;
     aircraftSprite.course = new Three.CatmullRomCurve3(destinationArc.geometry.vertices);
@@ -128,25 +140,43 @@ class Globe extends React.Component {
     this.arcs.push(destinationArc);
     const testVector = new Three.Vector3(testData.x, testData.y, testData.z);
 
-    this.alignSpriteToGlobe(aircraftSprite, this.globe.position, targetMarker.position);
-    // aircraftSprite.rotation.set(
-    //   aircraftSprite.rotation.x,
-    //   aircraftSprite.rotation.y,
-    //   -0.75
-    // );
+    this.alignSpriteToGlobe(aircraftSprite, this.globe, targetMarker);
   }
 
   alignSpriteToGlobe(sprite, planet, targetMarker) {
     const oldPosition = sprite.position.clone();
-    sprite.position.copy(planet);
+    sprite.position.copy(planet.position);
     sprite.lookAt(oldPosition);
     sprite.position.copy(oldPosition);
-    sprite.rotation.z -= this.geoHelper.getInitialBearing(
-      43.761539,
-      -79.411079,
-      51.50,
-      -0.076
-    ) * (Math.PI / 180);
+    this.alignSpriteToTargetMarker(sprite, targetMarker);
+    // sprite.rotation.z -= this.geoHelper.getInitialBearing(
+    //   43.761539,
+    //   -79.411079,
+    //   51.50,
+    //   -0.076
+    // ) * (Math.PI / 180);
+  }
+
+  alignSpriteToTargetMarker(sprite, targetMarker) {
+
+    const initialPosition = this.geoHelper.vector3ToLatLong(
+      sprite.position.clone(),
+      SPHERE_RADIUS
+    );
+    const destinationPosition = this.geoHelper.vector3ToLatLong(
+      targetMarker.position.clone(),
+      SPHERE_RADIUS
+    );
+
+    // console.log(initialPosition, destinationPosition)
+    const spriteAlignment = this.geoHelper.getInitialBearing(
+      initialPosition.lat,
+      initialPosition.lng,
+      destinationPosition.lat,
+      destinationPosition.lng
+    ) * (Math.PI / 180) - 1.8;
+
+    sprite.rotation.set(sprite.rotation.x, sprite.rotation.y, spriteAlignment);
   }
 
   getUpPositionVector(objectToAdjust, pointToLookAt, pointToOrientXTowards) {
@@ -162,14 +192,18 @@ class Globe extends React.Component {
     for (let i = 0; i < destinationArc.geometry.vertices.length; i += 1) {
       const vertex = destinationArc.geometry.vertices[i];
       // TEST
-      const sphereMesh = new Three.Mesh(
-        new Three.SphereGeometry(1, 9, 9),
-        new Three.MeshBasicMaterial({ color: 0xff0000 })
-      );
-
-      if (i % 75 === 0) {
-        sphereMesh.position.set(vertex.x, vertex.y, vertex.z);
-        markers.add(sphereMesh);
+      let markerMesh;
+      if (i === 0 || i === (destinationArc.geometry.vertices.length - 1)) {
+        markerMesh = new Three.Object3D();
+        markerMesh.position.set(vertex.x, vertex.y, vertex.z);
+        markers.add(markerMesh);
+      } else if (i % 75 === 0) {
+        markerMesh = new Three.Mesh(
+          new Three.SphereGeometry(1, 9, 9),
+          new Three.MeshBasicMaterial({ color: 0xff0000 })
+        );
+        markerMesh.position.set(vertex.x, vertex.y, vertex.z);
+        markers.add(markerMesh);
       }
     }
 
@@ -197,6 +231,7 @@ class Globe extends React.Component {
     );
     const { x, y, z } = this.geoHelper.latLongToVector3(lat, lon, SPHERE_RADIUS, spriteHeight);
     sprite.position.set(x, y, z);
+    sprite.targetIndex = 1;
 
     return sprite;
   }
@@ -281,22 +316,29 @@ class Globe extends React.Component {
       geometry.vertices.push(vertex);
     }
 
-    return new Three.Line(geometry, material);
+    const destinationArc = new Three.Line(geometry, material);
+    destinationArc.markers = this.createMarkersForArc(destinationArc);
+    return destinationArc;
   }
 
   renderScene() {
     // TESTING
     // console.log(this.camera.position);
-    testTime += 0.0005;
+    testTime += 0.0009;
     if (testTime > 1) {
       testTime = 0;
     }
     const tempSprite = this.sprites[0];
     if (tempSprite) {
       const {x, y, z} = tempSprite.course.getPoint(testTime);
-      // tempSprite.position.set(x, y, z);
-      const targetMarker = tempSprite.arc.markers.children[1];
-      this.alignSpriteToGlobe(tempSprite, this.globe.position, targetMarker.position);
+      tempSprite.position.set(x, y, z);
+      const targetMarker = tempSprite.arc.markers.children[tempSprite.targetIndex];
+      if (this.mathHelper.isVector3Equal(targetMarker.position, tempSprite.position, 0.5)) {
+        tempSprite.targetIndex =
+          tempSprite.targetIndex === tempSprite.arc.markers.children.length - 1 ?
+          1 : tempSprite.targetIndex + 1;
+      }
+      this.alignSpriteToGlobe(tempSprite, this.globe, targetMarker);
       // const { lat, long } = this.geoHelper.vector3ToLatLong(tempSprite.position, SPHERE_RADIUS);
     //   if (testTime) {
     //     console.log(lat, long);

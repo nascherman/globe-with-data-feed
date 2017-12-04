@@ -13,10 +13,15 @@ export default class GeoHelper {
   }
 
   // TODO fix this
-  vector3ToLatLong(position, radius) {
-    const lat = 90 - (Math.acos(position.y / radius)) * 180 / Math.PI;
-    const long = ((180 + (Math.atan2(position.x , position.z)) * 180 / Math.PI) % 360);
-    return { lat, long };
+  vector3ToLatLong(vector3, radius) {
+    const tempRadius = radius + 50;
+    const {x, y, z} = vector3;
+    var lat = 90 - (Math.acos(y / tempRadius)) * 180 / Math.PI;
+    var lng = ((270 + (Math.atan2(x , z)) * 180 / Math.PI) % 360) - 360;
+    return {
+      lat,
+      lng
+    };
   }
 
   getInitialBearing(initialLat, initialLong, destLat, destLong) {
