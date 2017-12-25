@@ -1,4 +1,4 @@
-import vincenty from 'node-vincenty';
+const vincenty = require('node-vincenty');
 
 export default class GeoHelper {
   latLongToVector3(lat, lon, radius, height) {
@@ -14,10 +14,22 @@ export default class GeoHelper {
 
   // TODO fix this
   vector3ToLatLong(vector3, radius) {
-    const tempRadius = radius + 50;
     const {x, y, z} = vector3;
-    var lat = 90 - (Math.acos(y / tempRadius)) * 180 / Math.PI;
-    var lng = ((270 + (Math.atan2(x , z)) * 180 / Math.PI) % 360) - 360;
+    let lat = 90 - (Math.acos(y / radius)) * 180 / Math.PI;
+    let lng = ((270 + (Math.atan2(x, z)) * 180 / Math.PI) % 360) - 360;
+
+    if (lng < -180) {
+      lng = 180 - ((lng * -1) - 180);
+    } else if (lng > 180) {
+      lng = -(180 - (lng - 180));
+    }
+
+    if (lat < -90) {
+      lat = 90 - ((lat * -1) - 90);
+    } else if (lat > 90) {
+      lat = -(90 - (lat - 180));
+    }
+
     return {
       lat,
       lng
