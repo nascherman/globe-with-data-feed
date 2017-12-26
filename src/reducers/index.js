@@ -9,7 +9,12 @@
  */
 /* Populated by react-webpack-redux:reducer */
 import { combineReducers } from 'redux';
+import craft from './craft.reducer';
+import tooltip from './tooltip.reducer';
 
-const reducers = {};
+const reducers = {
+  craft,
+  tooltip
+};
 const combined = combineReducers(reducers);
 module.exports = combined;

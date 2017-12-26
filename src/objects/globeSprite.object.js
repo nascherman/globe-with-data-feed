@@ -3,36 +3,60 @@ const GeoHelper = require('../services/geo.helper').default;
 const MathHelper = require('../services/math.helper').default;
 
 export default class GlobeSprite {
-  constructor(latitude, longitude, texture, alpha, width, height, altitude, scene) {
-    const loader = new THREE.TextureLoader();
-    const spriteTexture = loader.load(texture);
-    const spriteAlpha = loader.load(alpha);
-
-    const geometry = new THREE.PlaneGeometry(width, height);
-    geometry.rotateX(Math.PI / 2);
-
-    const sprite = new THREE.Mesh(
-      geometry,
-      new THREE.MeshStandardMaterial({
-        // alphaMap: spriteAlpha,
-        map: spriteTexture,
-        transparent: true,
-        alphaTest: 0.5,
-        side: THREE.DoubleSide,
-        flatShading: true
-      })
-    );
+  constructor(
+    craftData,
+    texture,
+    alpha,
+    width,
+    height,
+    altitude,
+    scene,
+    reverse,
+    hoursPerTick,
+    object,
+    cb
+  ) {
+    const { Lat, Long, Trak, Spd } = craftData;
 
     this.targetIndex = 1;
-
-    this.sprite = sprite;
     this.scene = scene;
     this.geoHelper = new GeoHelper();
     this.mathHelper = new MathHelper();
 
-    this.scene.add(this.sprite);
+    object = object.children[0];
+    object.scale.set(0.5, 0.5, 0.5);
+    object.material = new THREE.MeshPhongMaterial({
+      ambient: 0x555555,
+      color: 0x555555,
+      specular: 0xffffff,
+      shininess: 50,
+      shading: THREE.SmoothShading
+    });
 
-    this.setPosition(latitude, longitude, altitude);
+    object.craftData = craftData;
+    this.sprite = object;
+
+    this.scene.add(this.sprite);
+    this.setPosition(Lat, Long, altitude);
+
+    const estimatedPosition = this.geoHelper.calculateNewPostionFromBearingDistance(
+      Lat,
+      Long,
+      Trak,
+      hoursPerTick * (Spd * 1.85)
+    );
+    const destinationCoordinates = this.geoHelper.latLongToVector3(
+      estimatedPosition[0],
+      estimatedPosition[1],
+      altitude
+    );
+
+    this.setDestination(
+      destinationCoordinates,
+      reverse
+    );
+
+    cb(this);
   }
 
   setPosition(latitude, longitude, altitude) {
@@ -110,7 +134,7 @@ export default class GlobeSprite {
     return markers;
   }
 
-  alignToGlobe(globe, delta) {
+  alignToGlobe(globe, delta, camera) {
     const { x, y, z } = this.course.getPoint(delta);
     const targetMarker = this.arc.markers.children[this.targetIndex];
 
@@ -121,16 +145,13 @@ export default class GlobeSprite {
         1 : this.targetIndex + 1;
     }
 
-    const oldPosition = this.sprite.position.clone();
-    this.sprite.position.copy(globe.position);
-    this.sprite.lookAt(oldPosition);
-    this.sprite.position.copy(oldPosition);
+    this.sprite.lookAt(camera.position);
     const oldRotation = this.sprite.rotation.clone();
     this.sprite.lookAt(targetMarker.position);
     this.sprite.rotation.set(
       this.sprite.rotation.x,
       this.sprite.rotation.y,
-      oldRotation.y
+      oldRotation.z
     );
   }
 }

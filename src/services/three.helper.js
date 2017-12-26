@@ -1,8 +1,10 @@
 const THREE = require('three');
+
 const OrbitControls = require('three-orbit-controls')(THREE);
 
 // For Debugging
 window.THREE = THREE;
+require('../util/three-obj-loader');
 
 export default class ThreeHelper {
   constructor(width, height) {
@@ -36,5 +38,25 @@ export default class ThreeHelper {
 
   getThree() {
     return THREE;
+  }
+
+  getClock() {
+    return new THREE.Clock();
+  }
+
+  getMouseClickIntersects(event, camera, objects) {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2(); // create once
+    mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    return raycaster.intersectObjects(objects, true);
+  }
+
+  loadOBJ(url, cb) {
+    const loader = new THREE.OBJLoader();
+    loader.load(url, cb);
   }
 }

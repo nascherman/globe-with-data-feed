@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 
 import GeoHelper from '../services/geo.helper';
 import SceneHelper from '../services/scene.helper';
@@ -7,7 +7,7 @@ import NetworkHelper from '../services/network.helper';
 import GlobeSprite from '../objects/globeSprite.object';
 
 const SPHERE_RADIUS = 300;
-const ALTITUDE = 10;
+const ALTITUDE = 3;
 const INITIAL_CAM_POSITION = {
   x: 50,
   y: 316,
@@ -19,7 +19,7 @@ const INITIAL_SUN_POSITION = {
   z: 0
 };
 const CONTROL_OPTIONS = {
-  minDistance: 400,
+  minDistance: 450,
   maxDistance: 1000,
   minPolarAngle: 0.1,
   maxPolarAngle: Math.PI - 0.1,
@@ -29,41 +29,49 @@ const CONTROL_OPTIONS = {
   rotateSpeed: 0.1
 };
 
-const AIRCRAFT_POSITIONS = {
-  start: [43, -79]
-};
 const AMBIENT_INTESNITY = 1;
 const SPOTLIGHT_INTENSITY = 1;
 const REVERSE = false;
-
-let testTime = 0;
+const HOURS_PER_TICK = 1;
+const MAX_SPRITE_INSTANCES = 200;
 
 class Globe extends React.Component {
   constructor(props) {
     super(props);
-
-    this.helper = new SceneHelper(props.width, props.height, CONTROL_OPTIONS);
-    this.geoHelper = new GeoHelper();
-    this.networkHelper = new NetworkHelper();
-    this.renderer = this.helper.getRenderer();
-    this.scene = this.helper.getScene();
-    this.camera = this.helper.getCamera();
     this.sprites = [];
+    this.props = props;
 
     // For Debugging
     window.scene = this.scene;
   }
 
   componentDidMount() {
+    const width = (this.props.width / 100) * document.getElementById('index').clientWidth;
+    const height = (this.props.height / 100) * document.getElementById('index').clientHeight;
+
+    this.helper = new SceneHelper(
+      width,
+      height,
+      CONTROL_OPTIONS
+    );
+    this.geoHelper = new GeoHelper();
+    this.networkHelper = new NetworkHelper();
+    this.renderer = this.helper.getRenderer();
+    this.scene = this.helper.getScene();
+    this.camera = this.helper.getCamera();
+    this.clock = this.helper.getClock();
+
     this.createScene();
     this.loadData()
       .then((data) => {
         this.populateGlobe(data);
+        this.clock.start();
         this.start();
       });
   }
 
   componentWillUnmount() {
+    this.clock.stop();
     this.stop();
   }
 
@@ -109,6 +117,34 @@ class Globe extends React.Component {
 
     const el = document.getElementById('scene');
     el.appendChild(this.renderer.domElement);
+
+    this.renderer.domElement.addEventListener('click', this._clickHandler.bind(this));
+    window.addEventListener('resize', this._resizeHandler.bind(this));
+  }
+
+  _resizeHandler() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(width, height);
+  }
+
+  _clickHandler(event) {
+    const intersects = this.helper.getMouseClickIntersects(
+      event,
+      this.camera,
+      this.sprites.map(sprite => sprite.sprite)
+    );
+    if (intersects[0] && intersects[0].object && intersects[0].object.craftData) {
+      if (!this.props.tooltip) {
+        this.props.toggleTooltipVisibility(true);
+      }
+      this.props.setCraft(intersects[0].object.craftData);
+    } else {
+      this.props.toggleTooltipVisibility(false);
+    }
   }
 
   createPlanet() {
@@ -140,7 +176,7 @@ class Globe extends React.Component {
     });
 
     const meshClouds = new Three.Mesh(spGeo, mat2);
-    meshClouds.scale.set(1.015, 1.015, 1.015);
+    meshClouds.scale.set(1.001, 1.001, 1.001);
 
     return { meshPlanet, meshClouds };
   }
@@ -150,47 +186,57 @@ class Globe extends React.Component {
   }
 
   populateGlobe(data) {
-    const aircraft = data.responseText;
-
-    aircraft.forEach((craft) => {
-      const aircraftSprite = new GlobeSprite(
-        craft.Lat,
-        craft.Long,
-        '/static/aircraft-sprite.jpg',
-        '/static/aircraft-sprite-alpha.png',
-        3,
-        3,
-        SPHERE_RADIUS + ALTITUDE,
-        this.scene
-      );
-
-      const estimatedPosition = this.geoHelper.calculateNewPostionFromBearingDistance(
-        craft.Lat,
-        craft.Long,
-        craft.Trak,
-        1000
-      );
-      const destinationCoordinates = this.geoHelper.latLongToVector3(
-        estimatedPosition[0],
-        estimatedPosition[1],
-        SPHERE_RADIUS + ALTITUDE
-      );
-
-      aircraftSprite.setDestination(
-        destinationCoordinates,
-        REVERSE
-      );
-
-      this.sprites.push(aircraftSprite);
+    this.helper.loadOBJ('/static/lp-airplane.obj', (object) => {
+      object.children[0].geometry.rotateY(Math.PI + Math.PI / 2);
+      const aircraft = data.responseText;
+      if (aircraft.length > MAX_SPRITE_INSTANCES) {
+        const selectedInstances = [];
+        for (let i = 0; i < MAX_SPRITE_INSTANCES; i += 1) {
+          const aircraftObject = object.clone();
+          const selectionIndex = parseInt(Math.random() * (aircraft.length - 1));
+          if (selectedInstances.indexOf(selectionIndex) !== -1) {
+            i -= 1;
+          } else {
+            selectedInstances.push(selectionIndex);
+            this._addSprite(aircraft[selectionIndex], aircraftObject);
+          }
+        }
+      } else {
+        aircraft.forEach((craftData) => {
+          const aircraftObject = object.clone();
+          this._addSprite(craftData, aircraftObject);
+        });
+      }
     });
+  }
+
+  _addSprite(craftData, object) {
+    const _self = this;
+    const aircraftSprite = new GlobeSprite(
+      craftData,
+      '/static/aircraft-sprite.jpg',
+      '/static/aircraft-sprite-alpha.png',
+      3,
+      3,
+      SPHERE_RADIUS + ALTITUDE,
+      this.scene,
+      REVERSE,
+      HOURS_PER_TICK,
+      object,
+      (sprite) => {
+        _self.sprites.push(sprite);
+      }
+    );
+
+
   }
 
   renderScene() {
     // TESTING
-    // console.log(this.camera.position);
-    testTime += 0.0005;
-    if (testTime >= 1) {
-      testTime = 0;
+    const tickPercentage = this.clock.getElapsedTime() / (60 * 60);
+    // TODO handle resetting of data
+    if (tickPercentage >= 1) {
+      // tickPercentage = 0;
       this.sprites[0].targetIndex = 1;
       this.sprites.forEach((sprite) => {
         sprite.targetIndex = 1;
@@ -198,7 +244,7 @@ class Globe extends React.Component {
     }
 
     this.sprites.forEach((sprite) => {
-      sprite.alignToGlobe(this.globe, testTime);
+      sprite.alignToGlobe(this.globe, tickPercentage, this.camera);
     });
 
     this.helper.controls.update();
@@ -211,5 +257,11 @@ class Globe extends React.Component {
     );
   }
 }
+
+Globe.propTypes = {
+  width: PropTypes.number,
+  height: PropTypes.number,
+  setCraft: PropTypes.func
+};
 
 export default Globe;
