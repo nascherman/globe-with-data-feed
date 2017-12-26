@@ -1,15 +1,15 @@
-const vincenty = require('node-vincenty');
+const THREE = require('three');
 
 export default class GeoHelper {
-  latLongToVector3(lat, lon, radius, height) {
+  latLongToVector3(lat, lon, radius) {
     const phi = (lat) * (Math.PI / 180);
     const theta = (lon - 180) * (Math.PI / 180);
 
-    const x = -(radius + height) * Math.cos(phi) * Math.cos(theta);
-    const y = (radius + height) * Math.sin(phi);
-    const z = (radius + height) * Math.cos(phi) * Math.sin(theta);
+    const x = -(radius) * Math.cos(phi) * Math.cos(theta);
+    const y = (radius) * Math.sin(phi);
+    const z = (radius) * Math.cos(phi) * Math.sin(theta);
 
-    return {x, y, z};
+    return new THREE.Vector3(x, y, z);
   }
 
   // TODO fix this
@@ -36,7 +36,13 @@ export default class GeoHelper {
     };
   }
 
-  getInitialBearing(initialLat, initialLong, destLat, destLong) {
-    return vincenty.distVincenty(initialLat, initialLong, destLat, destLong).initialBearing;
-  }
+  //lat, lng in degrees. Bearing in degrees. Distance in Km
+  calculateNewPostionFromBearingDistance(lat, lng, bearing, distance) {
+    var R = 6371; // Earth Radius in Km
+
+    var lat2 = Math.asin(Math.sin(Math.PI / 180 * lat) * Math.cos(distance / R) + Math.cos(Math.PI / 180 * lat) * Math.sin(distance / R) * Math.cos(Math.PI / 180 * bearing));
+    var lon2 = Math.PI / 180 * lng + Math.atan2(Math.sin( Math.PI / 180 * bearing) * Math.sin(distance / R) * Math.cos( Math.PI / 180 * lat ), Math.cos(distance / R) - Math.sin( Math.PI / 180 * lat) * Math.sin(lat2));
+
+    return [180 / Math.PI * lat2 , 180 / Math.PI * lon2];
+  };
 }
