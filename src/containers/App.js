@@ -10,9 +10,10 @@ import React, {
 } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+
 import { setCraft, toggleTooltipVisibility } from '../actions/';
 import Main from '../components/App';
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 /* Populated by react-webpack-redux:reducer */
 class App extends Component {
   render() {
@@ -31,7 +32,8 @@ class App extends Component {
  *       adjust it here.
  */
 App.propTypes = {
-  actions: PropTypes.shape({})
+  actions: PropTypes.shape({}),
+  craft: PropTypes.shape({})
 };
 function mapStateToProps(state) { // eslint-disable-line no-unused-vars
   /* Populated by react-webpack-redux:reducer */

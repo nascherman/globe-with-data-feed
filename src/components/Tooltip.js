@@ -17,6 +17,23 @@ class Tooltip extends React.Component {
     // console.log('PROPS', newProps);
   }
 
+  _getEngineType(type) {
+    switch (type) {
+      case 0:
+        return 'None';
+      case 1:
+        return 'Piston Engine';
+      case 2:
+        return 'Turboprop Engine';
+      case 3:
+        return 'Jet Engine';
+      case 4:
+        return 'Electric Engine';
+      default:
+        return 'Unknown Type Engine';
+    }
+  }
+
   render() {
     const { craft, tooltip } = this.props;
     const colWidth = {
@@ -53,7 +70,7 @@ class Tooltip extends React.Component {
             </TableRow>
             <TableRow>
               <TableRowColumn style={colWidth}>Engines</TableRowColumn>
-              <TableRowColumn>{`${craft.Engines} / ${craft.EngType}`}</TableRowColumn>
+              <TableRowColumn>{`${craft.Engines} ${this._getEngineType(craft.EngType)}${craft.Engines > 1 ? 's' : ''}`}</TableRowColumn>
             </TableRow>
             <TableRow>
               <TableRowColumn style={colWidth}>GPS Location</TableRowColumn>
@@ -66,12 +83,12 @@ class Tooltip extends React.Component {
           </TableBody>
         </Table>
       </div>
-    )
+    );
   }
 }
 
 Tooltip.defaultProps = {};
-Tooltip.proptypes = {
+Tooltip.propTypes = {
   craft: PropTypes.object
 };
 

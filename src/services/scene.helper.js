@@ -19,4 +19,8 @@ export default class SceneHelper extends ThreeHelper {
   getRenderer() {
     return this.renderer;
   }
+
+  getControls() {
+    return this.controls;
+  }
 }

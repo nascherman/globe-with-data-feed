@@ -18,19 +18,18 @@ export default class GlobeSprite {
   ) {
     const { Lat, Long, Trak, Spd } = craftData;
 
-    this.targetIndex = 1;
     this.scene = scene;
     this.geoHelper = new GeoHelper();
     this.mathHelper = new MathHelper();
 
     object = object.children[0];
     object.scale.set(0.5, 0.5, 0.5);
+    object.castShadow = true;
     object.material = new THREE.MeshPhongMaterial({
-      ambient: 0x555555,
       color: 0x555555,
       specular: 0xffffff,
       shininess: 50,
-      shading: THREE.SmoothShading
+      flatShading: THREE.SmoothShading
     });
 
     object.craftData = craftData;
@@ -100,58 +99,14 @@ export default class GlobeSprite {
     }
 
     const destinationArc = new THREE.Line(geometry, material);
-    destinationArc.markers = this._createMarkersForArc(destinationArc);
-
     this.course = new THREE.CatmullRomCurve3(destinationArc.geometry.vertices);
     this.scene.add(destinationArc);
     this.arc = destinationArc;
   }
 
-  _createMarkersForArc(destinationArc, SPACING = 75) {
-    const markers = new THREE.Object3D();
-    for (let i = 0; i < destinationArc.geometry.vertices.length; i += 1) {
-      const vertex = destinationArc.geometry.vertices[i];
-      // TEST
-      let markerMesh;
-      if (i === 0 || i === (destinationArc.geometry.vertices.length - 1)) {
-        markerMesh = new THREE.Object3D();
-        markerMesh.position.set(vertex.x, vertex.y, vertex.z);
-        markerMesh.name = i === 0 ? 'StartMarker' : 'EndMarker';
-        this.scene.add(markerMesh);
-        markers.add(markerMesh);
-      } else if (i % SPACING === 0) {
-        markerMesh = new THREE.Mesh(
-          new THREE.SphereGeometry(1, 9, 9),
-          new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
-        markerMesh.position.set(vertex.x, vertex.y, vertex.z);
-        markerMesh.name = `MarkerIdentity_${i}`;
-        this.scene.add(markerMesh);
-        markers.add(markerMesh);
-      }
-    }
-
-    return markers;
-  }
-
-  alignToGlobe(globe, delta, camera) {
+  alignToGlobe(globe, delta) {
     const { x, y, z } = this.course.getPoint(delta);
-    const targetMarker = this.arc.markers.children[this.targetIndex];
-
+    this.sprite.lookAt(this.course.getPoint(delta));
     this.sprite.position.set(x, y, z);
-    if (this.mathHelper.isVector3Equal(targetMarker.position, this.sprite.position)) {
-      this.targetIndex =
-        this.targetIndex === this.arc.markers.children.length - 1 ?
-        1 : this.targetIndex + 1;
-    }
-
-    this.sprite.lookAt(camera.position);
-    const oldRotation = this.sprite.rotation.clone();
-    this.sprite.lookAt(targetMarker.position);
-    this.sprite.rotation.set(
-      this.sprite.rotation.x,
-      this.sprite.rotation.y,
-      oldRotation.z
-    );
   }
 }

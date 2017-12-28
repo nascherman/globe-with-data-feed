@@ -14,12 +14,12 @@ const INITIAL_CAM_POSITION = {
   z: 302
 };
 const INITIAL_SUN_POSITION = {
-  x: -1000,
-  y: 300,
+  x: 3200,
+  y: 0,
   z: 0
 };
 const CONTROL_OPTIONS = {
-  minDistance: 450,
+  minDistance: 350,
   maxDistance: 1000,
   minPolarAngle: 0.1,
   maxPolarAngle: Math.PI - 0.1,
@@ -29,10 +29,10 @@ const CONTROL_OPTIONS = {
   rotateSpeed: 0.1
 };
 
-const AMBIENT_INTESNITY = 1;
+const AMBIENT_INTESNITY = 0.2;
 const SPOTLIGHT_INTENSITY = 1;
 const REVERSE = false;
-const HOURS_PER_TICK = 1;
+const HOURS_PER_TICK = 0.1;
 const MAX_SPRITE_INSTANCES = 200;
 
 class Globe extends React.Component {
@@ -41,8 +41,8 @@ class Globe extends React.Component {
     this.sprites = [];
     this.props = props;
 
-    // For Debugging
-    window.scene = this.scene;
+    this.geoHelper = new GeoHelper();
+    this.networkHelper = new NetworkHelper();
   }
 
   componentDidMount() {
@@ -54,12 +54,14 @@ class Globe extends React.Component {
       height,
       CONTROL_OPTIONS
     );
-    this.geoHelper = new GeoHelper();
-    this.networkHelper = new NetworkHelper();
+
     this.renderer = this.helper.getRenderer();
-    this.scene = this.helper.getScene();
     this.camera = this.helper.getCamera();
     this.clock = this.helper.getClock();
+    this.scene = this.helper.getScene();
+    // For Debugging
+    window.scene = this.scene;
+    window.controls = this.helper.getControls();
 
     this.createScene();
     this.loadData()
@@ -94,19 +96,25 @@ class Globe extends React.Component {
     const ambient = this.helper.createAmbience(0xFFFFFF, AMBIENT_INTESNITY);
     const light = this.helper.createDirectionalLight(0xFFFFFF, SPOTLIGHT_INTENSITY);
     const { meshPlanet, meshClouds } = this.createPlanet();
-    // test
     this.globe = meshPlanet;
 
     this.scene.add(meshPlanet);
     this.scene.add(meshClouds);
     this.scene.add(ambient);
-    this.scene.add(light);
+
+    const pivot = this.helper.createGroup();
+    this.scene.add(pivot);
+    pivot.add(light);
+
+    pivot.rotation.set(0, -1.5, 0.35);
+    this.sunPivot = pivot;
 
     this.camera.position.set(
       INITIAL_CAM_POSITION.x,
       INITIAL_CAM_POSITION.y,
       INITIAL_CAM_POSITION.z
     );
+
     light.position.set(
       INITIAL_SUN_POSITION.x,
       INITIAL_SUN_POSITION.y,
@@ -165,7 +173,7 @@ class Globe extends React.Component {
     });
 
     const meshPlanet = new Three.Mesh(spGeo, mat1);
-
+    meshPlanet.receiveShadow = true;
     // Clouds
     const cloudsTexture = loader.load('/static/earthcloudmap.jpg');
     const mat2 = new Three.MeshPhongMaterial({
@@ -176,7 +184,7 @@ class Globe extends React.Component {
     });
 
     const meshClouds = new Three.Mesh(spGeo, mat2);
-    meshClouds.scale.set(1.001, 1.001, 1.001);
+    meshClouds.scale.set(1.02, 1.02, 1.02);
 
     return { meshPlanet, meshClouds };
   }
@@ -233,18 +241,14 @@ class Globe extends React.Component {
 
   renderScene() {
     // TESTING
-    const tickPercentage = this.clock.getElapsedTime() / (60 * 60);
+    const tickPercentage = this.clock.getElapsedTime() / (60 * (60 * HOURS_PER_TICK));
     // TODO handle resetting of data
     if (tickPercentage >= 1) {
       // tickPercentage = 0;
-      this.sprites[0].targetIndex = 1;
-      this.sprites.forEach((sprite) => {
-        sprite.targetIndex = 1;
-      });
     }
 
     this.sprites.forEach((sprite) => {
-      sprite.alignToGlobe(this.globe, tickPercentage, this.camera);
+      sprite.alignToGlobe(this.globe, tickPercentage);
     });
 
     this.helper.controls.update();

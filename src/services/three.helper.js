@@ -27,7 +27,19 @@ export default class ThreeHelper {
   }
 
   createDirectionalLight(colour, intensity) {
-    return new THREE.DirectionalLight(colour, intensity);
+    const spotlight = new THREE.SpotLight(colour);
+    spotlight.castShadow = true;
+    spotlight.intensity = intensity;
+    spotlight.angle = 0.12;
+    spotlight.shadow.camera.near = 0.5;
+    spotlight.shadow.camera.far = 5000;
+    spotlight.shadowMapWidth = 8192;
+    spotlight.shadowMapHeight = 8192;
+    return spotlight;
+  }
+
+  createGroup() {
+    return new THREE.Group();
   }
 
   setOrbitControls(camera, options) {
