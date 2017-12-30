@@ -1,0 +1,166 @@
+{
+    "paths": {
+        "/aircraft": {
+            "get": {
+                "operationId": "Get List of Aircraft with Specificity",
+                "summary": "Get aircraft list",
+                "description": "Returns a list of aircraft from the ODB",
+                "responses": {
+                    "200": {
+                        "description": "A successful response returns an aircraft_list array",
+                        "schema": {
+                            "x-oad-type": "object",
+                            "type": "object",
+                            "title": "AircraftList",
+                            "properties": {
+                                "aircraft_list": {
+                                    "x-oad-type": "array",
+                                    "type": "array",
+                                    "title": "Aircraft List",
+                                    "items": {
+                                        "x-oad-type": "object",
+                                        "type": "object",
+                                        "properties": {
+                                            "aircraft": {
+                                                "x-oad-type": "object",
+                                                "type": "object",
+                                                "readOnly": true,
+                                                "properties": {
+                                                    "Id": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "default": 0
+                                                    },
+                                                    "Spd": {
+                                                        "x-oad-type": "integer",
+                                                        "type": "integer",
+                                                        "format": "int32",
+                                                        "default": 1
+                                                    },
+                                                    "Trak": {
+                                                        "x-oad-type": "integer",
+                                                        "type": "integer",
+                                                        "title": "Track",
+                                                        "description": "The heading of the aircraft 1 - 360",
+                                                        "format": "int32",
+                                                        "default": 1
+                                                    },
+                                                    "Mdl": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "title": "Model",
+                                                        "description": "The model type (eg. Boeing 787)"
+                                                    },
+                                                    "From": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "title": "Origin",
+                                                        "description": "The Origin of the aircraft. Format (AAAA, District, City, Country)\neg. RJAA Narita, Tokyo, Japan"
+                                                    },
+                                                    "To": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "title": "Destination",
+                                                        "description": "The destination"
+                                                    },
+                                                    "Op": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "title": "Operator"
+                                                    },
+                                                    "Engines": {
+                                                        "x-oad-type": "integer",
+                                                        "type": "integer",
+                                                        "description": "The number of engines",
+                                                        "format": "int32"
+                                                    },
+                                                    "EngType": {
+                                                        "x-oad-type": "integer",
+                                                        "type": "integer",
+                                                        "description": "The type of Engine as an integer.",
+                                                        "format": "int32"
+                                                    },
+                                                    "Mil": {
+                                                        "x-oad-type": "boolean",
+                                                        "type": "boolean",
+                                                        "description": "Is this a military aircraft?"
+                                                    },
+                                                    "SpdType": {
+                                                        "x-oad-type": "integer",
+                                                        "type": "integer",
+                                                        "description": "The unit of measuring speed",
+                                                        "format": "int32"
+                                                    },
+                                                    "Cou": {
+                                                        "x-oad-type": "string",
+                                                        "type": "string",
+                                                        "title": "Country of Origin"
+                                                    },
+                                                    "Cot": {
+                                                        "x-oad-type": "array",
+                                                        "type": "array",
+                                                        "title": "Cot",
+                                                        "description": "A set of points describing previously covered airspace",
+                                                        "items": {
+                                                            "x-oad-type": "number",
+                                                            "type": "number",
+                                                            "title": "A number describing the route",
+                                                            "description": "\"Full trails are a list of values that represent the positions that the aircraft has been seen in since it was first picked up.\n\nThe array is an array of numbers. It's very similar to short trails (see Note 1 - Cos above) except that instead of being sent the server time you are sent the heading of the aircraft at each coordinate. The idea is that the full track only shows the position the aircraft was in when its heading changed, so that if an aircraft travels in a straight line across the map then it can be described with just two positions - its start position and its end position - rather than hundreds of positions that together end up describing a straight line.\n\nWith that in mind, if just positions are being sent (TT is empty or missing) then the first value is latitude, the second value is longitude and the third is the heading angle (see Trak) that the aircraft was pointing in when it was at that position.\n\nIf altitude or speeds are also being sent (TT is either 'a' for altitude or 's' for speed) then the first value is latitude, the second longitude, the third is heading and the fourth is either altitude or speed.\"",
+                                                            "format": "float"
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "Id"
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "x-oad-type": "response"
+                    }
+                }
+            },
+            "x-oad-type": "operation"
+        },
+        "/status": {
+            "get": {
+                "operationId": "status",
+                "summary": "Get the status of the service",
+                "responses": {
+                    "200": {
+                        "description": "Everything is fine",
+                        "schema": {
+                            "x-oad-type": "string",
+                            "type": "string",
+                            "description": "A message saying everything is fine"
+                        },
+                        "x-oad-type": "response"
+                    }
+                }
+            },
+            "x-oad-type": "operation"
+        }
+    },
+    "info": {
+        "title": "ODB Interface",
+        "version": "1.0.0",
+        "description": "\t\tAn interface to the ADSB that caches results to prevent overuse of the API. Returns aircraft data.",
+        "contact": {
+            "name": "Nick Scherman",
+            "email": "n_scherman@hotmail.com"
+        },
+        "license": {
+            "name": "MIT"
+        }
+    },
+    "host": "nickscherman.com",
+    "basePath": "/api",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0"
+}
