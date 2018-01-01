@@ -2,7 +2,7 @@ import baseConfig from './base';
 
 const config = {
   appEnv: 'dist',
-  apiUrl: 'http://adsb.nickscherman.com',
+  apiUrl: 'https://adsb.nickscherman.com',
   apiPort: '8006'
 };
 
