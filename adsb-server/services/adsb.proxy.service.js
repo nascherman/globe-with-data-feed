@@ -44,7 +44,7 @@ class ADSBProxy {
       if (this.cacheTimeExceeded(cachedCoordinates.lat, cachedCoordinates.long)) {
         geoCacheHelper.clearCache(lat, long);
         this.startTimer(lat, long);
-        return aircraftListRequest(lat, long, radius);
+        return aircraftListRequest.call(this, lat, long, radius);
       } else {
         return new Promise((resolve) => {
           resolve(geoCacheHelper.getCache(cachedCoordinates.lat, cachedCoordinates.long));
