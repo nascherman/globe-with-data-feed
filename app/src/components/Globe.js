@@ -193,7 +193,7 @@ class Globe extends React.Component {
   }
 
   loadData(url) {
-    return this.networkHelper.get(url || `${config.apiUrl}:8008/api/aircraft?latitude=43.3212&longitude=-72.12345&radius=1000`);
+    return this.networkHelper.get(url || `${config.apiUrl}:${config.apiPort}/api/aircraft?latitude=43.3212&longitude=-72.12345&radius=1000`);
   }
 
   populateGlobe(data) {
