@@ -5,8 +5,6 @@ const MathHelper = require('../services/math.helper').default;
 export default class GlobeSprite {
   constructor(
     craftData,
-    texture,
-    alpha,
     width,
     height,
     altitude,
@@ -90,7 +88,8 @@ export default class GlobeSprite {
     const angleDelta = angle / (smoothness - 1);
     const geometry = new THREE.Geometry();
     const material = new THREE.LineBasicMaterial({
-      color: 0xff0000
+      color: 0xff0000,
+      visible: false
     });
 
     for (let i = 0; i < smoothness; i += 1) {

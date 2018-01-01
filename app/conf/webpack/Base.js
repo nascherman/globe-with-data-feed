@@ -100,15 +100,13 @@ class WebpackBaseConfig {
             }
           },
           {
-            test: /^.((?!cssmodule).)*\.css$/,
-            loaders: [
-              { loader: 'style-loader' },
-              { loader: 'css-loader' }
-            ]
+            test: /\.(png|jpg|gif|mp4|ogg|woff|woff2)$/,
+            loader: 'file-loader'
           },
           {
-            test: /\.(png|jpg|gif|mp4|ogg|svg|woff|woff2)$/,
-            loader: 'file-loader'
+            test: /\.svg$/,
+            loader: 'svg-react-loader',
+            exclude: /node_modules/
           },
           {
             test: /^.((?!cssmodule).)*\.(sass|scss)$/,
@@ -116,14 +114,6 @@ class WebpackBaseConfig {
               { loader: 'style-loader' },
               { loader: 'css-loader' },
               { loader: 'sass-loader' }
-            ]
-          },
-          {
-            test: /^.((?!cssmodule).)*\.less$/,
-            loaders: [
-              { loader: 'style-loader' },
-              { loader: 'css-loader' },
-              { loader: 'less-loader' }
             ]
           },
           {

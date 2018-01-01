@@ -5,6 +5,8 @@ import SceneHelper from '../services/scene.helper';
 import NetworkHelper from '../services/network.helper';
 
 import GlobeSprite from '../objects/globeSprite.object';
+import config from 'config';
+import isMobile from 'is-mobile';
 
 const SPHERE_RADIUS = 300;
 const ALTITUDE = 3;
@@ -25,15 +27,15 @@ const CONTROL_OPTIONS = {
   maxPolarAngle: Math.PI - 0.1,
   enableDamping: true,
   dampingFactor: 0.3,
-  zoomSpeed: 0.1,
+  zoomSpeed: 0.5,
   rotateSpeed: 0.1
 };
 
 const AMBIENT_INTESNITY = 0.2;
 const SPOTLIGHT_INTENSITY = 1;
 const REVERSE = false;
-const HOURS_PER_TICK = 0.1;
-const MAX_SPRITE_INSTANCES = 200;
+const HOURS_PER_TICK = 0.166;
+const MAX_SPRITE_INSTANCES = isMobile() ? 200 : 1000;
 
 class Globe extends React.Component {
   constructor(props) {
@@ -43,6 +45,7 @@ class Globe extends React.Component {
 
     this.geoHelper = new GeoHelper();
     this.networkHelper = new NetworkHelper();
+    this.currentTime = Date.now();
   }
 
   componentDidMount() {
@@ -114,6 +117,9 @@ class Globe extends React.Component {
       INITIAL_CAM_POSITION.y,
       INITIAL_CAM_POSITION.z
     );
+    this.camera.add(
+      this.helper.createPointLight(0xffffff, 0.1, 175)
+    );
 
     light.position.set(
       INITIAL_SUN_POSITION.x,
@@ -162,11 +168,8 @@ class Globe extends React.Component {
     const spGeo = new Three.SphereGeometry(SPHERE_RADIUS, 50, 50);
     const planetTexture = loader.load('/static/earthmap1k.jpg');
     const planetMap = loader.load('/static/earthbump8k.jpg');
-    const alphaMap = loader.load('/static/cities8k.png');
     const mat1 = new Three.MeshPhongMaterial({
       map: planetTexture,
-      specular: 0xffffff,
-      specularMap: alphaMap,
       bumpMap: planetMap,
       bumpScale: 1.5,
       shininess: 1
@@ -189,8 +192,8 @@ class Globe extends React.Component {
     return { meshPlanet, meshClouds };
   }
 
-  loadData() {
-    return this.networkHelper.get('http://localhost:3000/aircraft');
+  loadData(url) {
+    return this.networkHelper.get(url || `${config.apiUrl}:8008/api/aircraft?latitude=43.3212&longitude=-72.12345&radius=1000`);
   }
 
   populateGlobe(data) {
@@ -222,8 +225,6 @@ class Globe extends React.Component {
     const _self = this;
     const aircraftSprite = new GlobeSprite(
       craftData,
-      '/static/aircraft-sprite.jpg',
-      '/static/aircraft-sprite-alpha.png',
       3,
       3,
       SPHERE_RADIUS + ALTITUDE,
@@ -240,6 +241,7 @@ class Globe extends React.Component {
   }
 
   renderScene() {
+    this.currentTime = Date.now();
     // TESTING
     const tickPercentage = this.clock.getElapsedTime() / (60 * (60 * HOURS_PER_TICK));
     // TODO handle resetting of data

@@ -19,7 +19,11 @@ module.exports = {
         next(err);
         return;
       }
-      res.status(status).send(data);
+      res.status(status).send(data.acList.filter(a => {
+        if (a.Lat && a.Long && a.Spd && a.Trak) {
+          return a;
+        }
+      }));
     });
   }
 };

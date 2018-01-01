@@ -8,6 +8,8 @@ import {
   TableRowColumn,
 } from 'material-ui/Table';
 
+import CloseIcon from '-!babel-loader!svg-react-loader?name=CloseIcon!../static/close-icon.svg';
+
 import './tooltip.scss';
 
 
@@ -35,15 +37,18 @@ class Tooltip extends React.Component {
   }
 
   render() {
-    const { craft, tooltip } = this.props;
+    const { craft, tooltip, toggleTooltipVisibility } = this.props;
     const colWidth = {
       width: '100px'
     };
 
     return (
-      <div className={`tooltip-container  ${!tooltip ? 'is-hidden' : ''}`}>
+      <div className={`tooltip-container  ${!tooltip ? 'is-hidden' : ''}`} >
+        <CloseIcon className="close-icon"
+          onClick={toggleTooltipVisibility.bind(null, false)}/>
         <Table>
           <TableHeader
+            className="table-header"
             displaySelectAll={false}
             adjustForCheckbox={false}
           >
@@ -70,15 +75,15 @@ class Tooltip extends React.Component {
             </TableRow>
             <TableRow>
               <TableRowColumn style={colWidth}>Engines</TableRowColumn>
-              <TableRowColumn>{`${craft.Engines} ${this._getEngineType(craft.EngType)}${craft.Engines > 1 ? 's' : ''}`}</TableRowColumn>
+              <TableRowColumn>{`${craft.Engines || ''} ${this._getEngineType(craft.EngType) || ''}${craft.Engines > 1 ? 's' : ''}`}</TableRowColumn>
             </TableRow>
             <TableRow>
               <TableRowColumn style={colWidth}>GPS Location</TableRowColumn>
-              <TableRowColumn>{`${craft.Lat} Lat ${craft.Long} Long`}</TableRowColumn>
+              <TableRowColumn>{craft.Lat && craft.Long ? `${craft.Lat}Lat ${craft.Long} Long` : ''}</TableRowColumn>
             </TableRow>
             <TableRow>
               <TableRowColumn style={colWidth}>Heading</TableRowColumn>
-              <TableRowColumn>{craft.Trak}</TableRowColumn>
+              <TableRowColumn>{craft.Trak || ''}</TableRowColumn>
             </TableRow>
           </TableBody>
         </Table>

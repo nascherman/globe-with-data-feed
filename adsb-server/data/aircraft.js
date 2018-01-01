@@ -1,6 +1,6 @@
 const ADSBProxy = require('../services/adsb.proxy.service');
 
-const adsbProxy = new ADSBProxy('https://public-api.adsbexchange.com');
+const adsbProxy = new ADSBProxy('https://public-api.adsbexchange.com', (60000 * 10));
 /**
  * Operations on /aircraft
  */
@@ -15,7 +15,7 @@ module.exports = {
    */
   get: {
     200: function (req, res, callback) {
-      const { latitude, longitude } = req.query;
+      const { latitude, longitude, radius } = req.query;
       if (!latitude || !longitude) {
         adsbProxy.getAircraftList()
           .then(list => callback(null, list))
@@ -23,7 +23,7 @@ module.exports = {
             callback(e);
           });
       } else {
-        adsbProxy.getAircraftList(latitude, longitude)
+        adsbProxy.getAircraftList(latitude, longitude, radius)
           .then(list => callback(null, list))
           .catch(e => {
             callback(e);

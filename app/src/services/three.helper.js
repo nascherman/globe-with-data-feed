@@ -38,6 +38,10 @@ export default class ThreeHelper {
     return spotlight;
   }
 
+  createPointLight(colour, intensity, distance) {
+    return new THREE.PointLight(colour, intensity, distance);
+  }
+
   createGroup() {
     return new THREE.Group();
   }

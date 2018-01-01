@@ -1,9 +1,10 @@
-const http = require('https');
-const QueryHelper = require('../helpers/query.helper');
+// const http = require('https');
+const request = require('request-promise');
+// const QueryHelper = require('../helpers/query.helper');
 const GeoCacheHelper = require('../helpers/geo.cache.helper');
 const now = require('performance-now');
 
-const queryHelper = new QueryHelper();
+// const queryHelper = new QueryHelper();
 const geoCacheHelper = new GeoCacheHelper(200);
 const DEFAULT_CACHE = 'DEFAULT';
 
@@ -19,6 +20,7 @@ class ADSBProxy {
   constructor(host, cacheTime) {
     this.host = host;
     this.cacheTime = cacheTime;
+    this.timer = {};
   }
 
   startTimer(lat, long) {
@@ -30,19 +32,19 @@ class ADSBProxy {
       > this.cacheTime;
   }
 
-  getAircraftList(lat, long) {
+  getAircraftList(lat, long, radius) {
     const cachedData = geoCacheHelper.getCache(lat, long)
       || geoCacheHelper.getCacheDataFromCoordinatesWithinRadiusRange(lat, long);
     // No data is cached for the given coordinates
     if (!cachedData) {
       this.startTimer(lat, long);
-      return aircraftListRequest(lat, long);
+      return aircraftListRequest.call(this, lat, long, radius);
     } else { // data is cached and not expired - return cached data
       const cachedCoordinates = geoCacheHelper.decomposeCacheExpression(cachedData.COORDINATE_STAMP);
       if (this.cacheTimeExceeded(cachedCoordinates.lat, cachedCoordinates.long)) {
         geoCacheHelper.clearCache(lat, long);
-        this.startTime(lat, long);
-        return aircraftListRequest(lat, long);
+        this.startTimer(lat, long);
+        return aircraftListRequest(lat, long, radius);
       } else {
         return new Promise((resolve) => {
           resolve(geoCacheHelper.getCache(cachedCoordinates.lat, cachedCoordinates.long));
@@ -50,26 +52,30 @@ class ADSBProxy {
       }
     }
 
-    function aircraftListRequest(lat, long) {
-      return new Promise((resolve, reject) => {
-        const path = '/VirtualRadar/AircraftList.json';
-        const queryParams = queryHelper.constructQueryParams({ lat, long });
+    function aircraftListRequest(lat, lng, radius) {
+      let options = {
+        uri: `${this.host}/VirtualRadar/AircraftList.json`,
+        json: true
+      };
+      if (lat && lng) {
+        const { fNBnd, fSBnd, fWBnd, fEBnd } = geoCacheHelper.getRadiusCoordinates(lat, lng, radius);
+        options.qs = {
+          lat,
+          lng,
+          fNBnd,
+          fSBnd,
+          fWBnd,
+          fEBnd,
+          trFmt: 'fa',
+          refreshTrails: 1
+        };
+      }
 
-        http.get(`${this.host}${path}${queryParams}`, (response) => {
-          let result = '';
-          response.on('data', (chunk) => {
-            result += chunk;
-          });
-
-          response.on('end', () => {
-            const data = JSON.parse(result);
-            geoCacheHelper.setCache(lat, long, data);
-            resolve(data);
-          });
-        }).on('error', err => {
-          reject(err);
+      return request(options)
+        .then(data => {
+          geoCacheHelper.setCache(lat, lng, data);
+          return data;
         });
-      });
     }
   }
 }

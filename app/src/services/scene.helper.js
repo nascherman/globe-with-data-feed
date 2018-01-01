@@ -6,6 +6,8 @@ export default class SceneHelper extends ThreeHelper {
     this.scene = this.createScene();
     this.camera = this.createCamera(45, width, height);
     this.controls = this.setOrbitControls(this.camera, controlOptions);
+
+    this.scene.add(this.camera);
   }
 
   getScene() {
