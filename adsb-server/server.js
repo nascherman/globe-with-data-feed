@@ -5,10 +5,7 @@ const Express = require('express');
 const BodyParser = require('body-parser');
 const Swaggerize = require('swaggerize-express');
 const Path = require('path');
-const apicache = require('apicache');
 const cors = require('cors');
-
-const cache = apicache.middleware;
 
 const App = Express();
 
@@ -18,9 +15,8 @@ App.use(BodyParser.json());
 App.use(BodyParser.urlencoded({
   extended: true
 }));
-App.use(cache('10 minutes'));
-App.use(cors());
 
+App.use(cors());
 
 App.use(Swaggerize({
   api: Path.resolve('./config/swagger.json'),
